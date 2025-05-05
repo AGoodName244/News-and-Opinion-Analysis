@@ -46,7 +46,7 @@ Asynchronous submission of tasks  |                     | update task status
 
 ```bash
 git clone https://github.com/AGoodName244/News-and-Opinion-Analysis.git
-cd news-nlp-system
+cd News-and-Opinion-Analysis
 ```
 
 ### 2. Launch All Services
