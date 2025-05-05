@@ -1,0 +1,35 @@
+# Java
+/target/
+.idea/
+/*.iml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.venv/
+.env/
+.envrc
+.output/
+**/output/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# Docker
+*.pid
+*.sock
+
+# Redis dump
+dump.rdb
+
+# VSCode
+.vscode/
+
+# Local temp
+*.docx
+*.pdf

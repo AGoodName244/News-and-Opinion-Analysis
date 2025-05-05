@@ -1,37 +1,107 @@
-# AI-Enhanced Distributed Web Crawler
+# News NLP Analyzer
 
-A Java + Python hybrid system that supports concurrent task scheduling, intelligent web crawling, and AI-powered text analysis.
+A distributed system for keyword-based news crawling and NLP analysis. It combines a Srping Boot backend for task dispatching, Python services for crawling and NLP processing, Redis for task queueing, and MySQL for result storage. The entire system can be launched via Docker Compose
 
-## Project Overview
+## Features
 
-This project is a hybrid full-stack system that uses **Java** for high-performance task orchestration and **Python** for powerful web scraping and NLP. Users can submit a URL or keyword, and the system will:
-1. Crawl relevant web content.
-2. Analyze text sentiment, extract keywords, and generate summaries.
-3. Store and display the results through APIs and an optional UI.
+-- **Keyword-driven news crawling** via Python + requests + newspaper3k
+-- **Task dispatching & coordination** via Java Spring Boot backend
+-- **Asynchronous NLP analysis** with Redis queue and Python worker
+-- **Result tracking** in MySQL database, accessible through RESTful APIs
+-- **One-click deployment** Using Docker Compose
 
-> Although it's designed to run on a single machine, it simulates a distributed architecture using multi-process modular services communicating via HTTP or message queues.
+---
 
-## System Architecture
+## Architecture Overview
+<pre>
+                                  +--------------------+
+                                  |   Frontend (e.g.,  |
+                                  |     Postman / UI)  |
+                                  +---------+----------+
+                                            |
+                                            v
+                            +-------------------------------+
+                            |      Java Spring Boot         |
+                            |   - /api/search               |
+                            |   - /api/result/{taskId}      |
+        [MySQL DB]<-------- +-----+-------------------------+
+Polling and save results          ^     ^
+                                  |     | Redis Queue (tasks)
+                                  |     v
+                                  |   [Redis] <---------+ worker take work
+Asynchronous submission of tasks  |                     | update task status
+                                  |                     v
+                                  |             Python NLP Worker
+                                  |                     
+                                  v
+                              Python Crawler
+</pre>
+
+---
+
+## Setup Instructions
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/AGoodName244/News-and-Opinion-Analysis.git
+cd news-nlp-system
+```
+
+### 2. Launch All Services
+```bash
+docker compose up --build
+```
+This will build and start:
+- nlp-task-dispatcher (Java backend on port 8080)
+- python-crawler (crawler service on port 8002)
+- python-nlp (NLP worker on port 8001)
+- Redis (port 6379)
+- MySQL (port 3306)
+
+### 3. Usage
+#### Submit a Search Task
+```bash
+POST http://localhost:8080/api/search
+{
+  "keyword": {keyword},
+  "depth": {depth: shallow/medium/deep}
+}
+
+example:
+POST https://localhost:8080/api/searc
+{
+  "keyword": tiktok,
+  "depth": shallow
+}
+```
+
+This returns a JSON object:
+```
+{
+  "taskId": "a1b2c3d4-5678-90ef-...",
+  "keyword": "tiktok",
+  "depth": "shallow",
+  "status": "processing",
+  "timestamp": "2025-05-04T13:30:00Z"
+}
+```
+
+Query Task Results
+```
+GET http://localhost:8080/api/result/{taskid}
+```
+If the task is still processing, it returns an empty array. Once done, it return a list of results for each article, including:
+- title
+- url
+- summary
+- sentiment
+- extracted keywords
+
+### 4. Project Structure
 
 ```
-[ User / Frontend UI ]
-         ↓
-  [ Java REST API ]
-         ↓
-[ Task Manager / Thread Pool ]
-         ↓                 ↘
-[ Python Crawler Service ]   [ Python NLP Service ]
-         ↓                      ↓
-     Extracted Text        Analyzed JSON
-         ↘                      ↙
-             [ Relational/NoSQL Database ]
-```
-
-## Project Structure
-
-```
-ai-crawler-project/
-├── java-backend/           # Java: task manager, API, DB, async controller
+nlp-task-dispatcher/
+├── nlp-task-dispatcher/    # Java: task manager, API, DB, async controller
 ├── python-crawler/         # Python: fast crawler service
 ├── python-nlp/             # Python: NLP analysis (keywords, sentiment, summary)
 ├── shared/                 # Common schemas / test input / docs
@@ -39,91 +109,16 @@ ai-crawler-project/
 └── README.md
 ```
 
-## Technologies
+### 5. Technologies
+- Backend: Java17, Spring Boot
+- Crawling: Python, newspaper3k
+- NLP: Python, Hugging Face Transformers, NLTK/TextBlob
+- Message Queue: Redis
+- Database: MySQL 8
+- Deployment: Docker + Docker Compose
 
-| Module | Tech Stack |
-|--------|------------|
-| **Backend (API)** | Java, Spring Boot, REST API, JPA, CompletableFuture |
-| **Task Scheduling** | Java ExecutorService, async HTTP clients |
-| **Web Crawling** | Python (requests, BeautifulSoup, Flask/FastAPI) |
-| **Text Analysis** | Python (spaCy, transformers, VADER) |
-| **Database** | MySQL (via Spring Data JPA) or MongoDB |
-| **Frontend (optional)** | HTML/JS or Vue.js (future integration) |
-| **Containerization** | Docker + Docker Compose |
-
-## Getting Started
-
-### 1. Prerequisites
-
-- JDK 17+
-- Python 3.10+
-- Docker & Docker Compose
-
-### 2. Clone & Build
-
-```bash
-git clone https://github.com/yourname/ai-crawler-project.git
-cd ai-crawler-project
-```
-
-### 3. Run via Docker Compose
-
-```bash
-docker-compose up --build
-```
-
-Services exposed:
-- Java Backend: http://localhost:8080
-- Python Crawler: http://localhost:5001
-- Python NLP: http://localhost:5002
-- DB: port 3306
-
-## API Specification (Draft)
-
-### `POST /task`
-Submit a crawl task.
-
-```json
-{
-  "type": "url",            // or "keyword"
-  "payload": "https://example.com"
-}
-```
-
-### `GET /task/{id}`
-Check task status and result.
-
-### `POST /crawl`
-Internal (Python crawler): Get text from a webpage
-
-```json
-{ "url": "https://example.com" }
-```
-
-### `POST /analyze`
-Internal (Python NLP): Analyze raw text
-
-```json
-{ "text": "The quick brown fox jumps over the lazy dog." }
-```
-
-## Development Plan
-
-| Week | Task |
-|------|------|
-| 1 | Define interfaces, initialize Java & Python projects |
-| 2 | Java: build API & thread pool; Python: setup services |
-| 3 | Implement crawler and NLP modules |
-| 4 | Integrate end-to-end (Java → Crawler → NLP → DB) |
-| 5 | Add UI + result visualization |
-| 6 | Polish, test, write documentation, create demo |
-
-## Contributors
-
-- Lyuyongkang Yuan
-- Junwei Yan
-
-## License
-
-MIT License (or your choice)
-"# News-and-Opinion-Analysis" 
+### 6. Notes
+- The Java backend handles task submission and polling
+- Tasks are distributed to Python NLP via Redis queue
+- NLP results are stored only after completion to avoid incomplete queries
+- Task statuses are tracked in Redis: processing, done
